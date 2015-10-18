@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 # Only py3 print
 from __future__ import print_function
 
+from itertools import izip
+
 import numpy as np
 
 from sklearn.base import BaseEstimator
@@ -16,8 +18,46 @@ from sklearn.base import ClassifierMixin
 from data import make_data
 from plot import plot_boundary
 
-
 class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
+    class TrainingSample:
+        def __init__(self, X, y):
+            """One training sample with its expected class.
+
+            Parameters
+            ----------
+            X: array-like, shape = [n_features]
+                The sample.
+            y: the class of the sample
+
+            """
+
+            self.X = x
+            self.y = y
+
+        def dist(self, X):
+            """The distance the training sample and a set of features composing
+            a predicted sample.
+
+            Parameters
+            ----------
+            X: array-like of shape = [n_features]
+
+            Returns
+            -------
+            The sum of the square of the differences of the respective features
+            of the training sample and the predicted sample.
+            """
+
+            if self.X.shape != X.shape:
+                raise ValueError(
+                    "The two samples must have the same number of features"
+                )
+
+            return sum(
+                (feature1 - feature2)**2
+                for feature1, feature2 in izip(self.X, X)
+            )
+
     def __init__(self, n_neighbors=1):
         """K-nearest classifier classifier
 
@@ -59,7 +99,13 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         if y.shape[0] != X.shape[0]:
             raise ValueError("The number of samples differs between X and y")
 
-        # TODO your code here.
+        # Puts the training input samples into a Python list of TrainingSamples.
+        # Makes the tracking of the target output value ('y') easier when
+        # sorting the 'n_neighbors' nearest neighbors in the prediction
+        # algorithms.
+        self.train_set = [
+            TrainingSample(sample, target) for sample, target in izip(X, y)
+        ]
 
         return self
 
@@ -76,8 +122,42 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         y : array of shape = [n_samples]
             The predicted classes, or the predict values.
         """
-        # TODO your code here.
-        pass
+
+        # Input validation
+        X = np.asarray(X, dtype=np.float)
+        if X.ndim != 2:
+            raise ValueError("X must be 2 dimensional")
+
+        y = np.empty(X.shape[0]) # Output
+
+        for i, sample in enumerate(X):
+            #
+            # Finds the 'n_neighbors' nearest neighbors by sorting them.
+            #
+
+            def cmp_training_samples(training_sample1, training_sample2):
+                return cmp(
+                    training_sample1.dist(sample), training_sample2.dist(sample)
+                ) 
+
+            nearests = sorted(
+                self.train_set, cmp=cmp_training_samples
+            )[:self.n_neighbors]
+
+            #
+            # Selects the majority class in the nearest samples.
+            #
+
+            classes = {}
+            for nearest in nearests:
+                if nearest.y in classes:
+                    classes[nearest.y] += 1
+                else:
+                    classes[nearest.y] = 1
+
+            y[i] = max(classes.iteritems(), key=lambda (y, n): n)[0]
+
+        return y
 
     def predict_proba(self, X):
         """Return probability estimates for the test data X.
