@@ -11,6 +11,7 @@ from __future__ import print_function
 import numpy as np
 from matplotlib import pyplot as plt
 
+from sklearn.cross_validation import cross_val_score, train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
 from data import make_data
@@ -21,11 +22,16 @@ if __name__ == "__main__":
 
     N_SAMPLES  = 2000
     N_TRAINING = 150
+    RANDOM_STATE = 1
 
-    X, y = make_data(N_SAMPLES, random_state=1)
+    MAX_DEPTH = 17 # Doesn't train tree deeper than 'MAX_DEPTH'
 
-    X_train, y_train = X[:N_TRAINING], y[:N_TRAINING]
-    X_test,  y_test  = X[N_TRAINING:], y[N_TRAINING:]
+    X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
+
+    # Splits the training and testings sets randomly.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=N_TRAINING, random_state=RANDOM_STATE
+    )
 
     assert (len(X_train) == N_TRAINING)
     assert (len(y_train) == N_TRAINING)
@@ -34,10 +40,13 @@ if __name__ == "__main__":
 
     scores_test = []
     scores_train = []
-    max_depth = 0
+    scores_ten_fold = []
+
     depth = 1
-    while True:
+    while depth <= MAX_DEPTH:
         dtc = DecisionTreeClassifier(max_depth=depth)
+
+        # Trains the classifier on a simple train/test split of the data.
         dtc.fit(X_train, y_train)
 
         score_test = dtc.score(X_test, y_test)
@@ -46,25 +55,57 @@ if __name__ == "__main__":
         scores_test.append(score_test)
         scores_train.append(score_train)
 
-        print("Depth: {} Score (test): {} Score (train): {}".format(
-            depth, score_test, score_train
-        ))
+        # Computes the score using a 10-fold cross-validation.
+        score_ten_fold = cross_val_score(
+            dtc, X, y, cv=10
+        ).mean()
+        scores_ten_fold.append(score_ten_fold)
 
-        plot_boundary("dt_out/dt_{depth}".format(depth=depth), dtc, X, y)
+        print(
+            "Depth: {} Score (test): {} Score (train): {} Score (10-fold): {}"
+                .format(depth, score_test, score_train, score_ten_fold)
+        )
 
-        # Stops when the tree perfectly fits the training set.
-        if score_train == 1.0:
-            break
-        else:
-            depth += 1
+        plot_boundary(
+            "dt_out/dt_{depth}".format(depth=depth), dtc, X_test, y_test
+        )
+
+        depth += 1
+
     plt.figure()
-    plt.title("Error")
-    plt.xlabel("Complexity")
+    plt.title("Decision tree error rate")
+    plt.xlabel("Tree depth (complexity)")
     plt.ylabel("Error")
     plt.ylim(0, 1)
-    plt.plot(range(1, len(scores_test) + 1), [1 - s for s in scores_test], 'r')
-    plt.plot(range(1, len(scores_train) + 1), [1 - s for s in scores_train], 'g')
-    plt.plot(9, 1-max(scores_test),"o")
+    depth_range = range(1, len(scores_test) + 1)
+    plt.plot(
+        depth_range, [1 - s for s in scores_test], 'r', label="Testing set"
+    )
+    plt.plot(
+        depth_range, [1 - s for s in scores_train], 'g', label="Training set"
+    )
+    plt.plot(
+        depth_range, [1 - s for s in scores_ten_fold], 'b',
+        label="10-fold cross-validation"
+    )
+
+    def find_best_score(scores):
+        """
+        Given a list of scores, returns the best score, and the depth at which
+        it was achieved.
+        """
+        best_score = max(scores)
+        best_score_depth = scores.index(best_score) + 1
+        return best_score, best_score_depth
+
+    best_test_score, best_test_depth = find_best_score(scores_test)
+    plt.plot(best_test_depth, 1 - best_test_score, "ro")
+
+    best_ten_fold_score, best_ten_fold_depth = find_best_score(scores_ten_fold)
+    plt.plot(best_ten_fold_depth, 1 - best_ten_fold_score, "bo")
+
+    plt.legend()
+
     plt.savefig("dt_out/Scores.pdf")
     plt.close()
 
