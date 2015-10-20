@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import numpy as np
+
 from matplotlib import pyplot as plt
 
 from sklearn.cross_validation import cross_val_score, train_test_split
@@ -42,8 +43,7 @@ if __name__ == "__main__":
     scores_train = []
     scores_ten_fold = []
 
-    depth = 1
-    while depth <= MAX_DEPTH:
+    for depth in range(1, MAX_DEPTH + 1):
         dtc = DecisionTreeClassifier(max_depth=depth)
 
         # Trains the classifier on a simple train/test split of the data.
@@ -56,9 +56,7 @@ if __name__ == "__main__":
         scores_train.append(score_train)
 
         # Computes the score using a 10-fold cross-validation.
-        score_ten_fold = cross_val_score(
-            dtc, X, y, cv=10
-        ).mean()
+        score_ten_fold = cross_val_score(dtc, X, y, cv=10).mean()
         scores_ten_fold.append(score_ten_fold)
 
         print(
@@ -69,8 +67,6 @@ if __name__ == "__main__":
         plot_boundary(
             "dt_out/dt_{depth}".format(depth=depth), dtc, X_test, y_test
         )
-
-        depth += 1
 
     plt.figure()
     plt.title("Decision tree error rate")
@@ -108,7 +104,3 @@ if __name__ == "__main__":
 
     plt.savefig("dt_out/Scores.pdf")
     plt.close()
-
-    
-
-    

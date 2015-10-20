@@ -8,55 +8,62 @@ from __future__ import unicode_literals
 # Only py3 print
 from __future__ import print_function
 
-from itertools import izip
-
 import numpy as np
 
-from sklearn.base import BaseEstimator
-from sklearn.base import ClassifierMixin
+from matplotlib import pyplot as plt
+
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.cross_validation import cross_val_score, train_test_split
+import sklearn.neighbors as skl
 
 from data import make_data
 from plot import plot_boundary
 
-class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
-    class TrainingSample:
-        def __init__(self, X, y):
-            """One training sample with its expected class.
+class TrainingSample:
+    def __init__(self, X, y):
+        """One training sample with its expected class.
 
-            Parameters
-            ----------
-            X: array-like, shape = [n_features]
-                The sample.
-            y: the class of the sample
+        Parameters
+        ----------
+        X: array-like, shape = [n_features]
+            The sample.
+        y: the class of the sample
 
-            """
+        """
 
-            self.X = x
-            self.y = y
+        self.X = X
+        self.y = y
 
-        def dist(self, X):
-            """The distance the training sample and a set of features composing
-            a predicted sample.
+    def dist(self, X):
+        """The Eclidian distance between the training sample and a set of
+        features composing a sample to predict.
 
-            Parameters
-            ----------
-            X: array-like of shape = [n_features]
+        Parameters
+        ----------
+        X: array-like of shape = [n_features]
 
-            Returns
-            -------
-            The sum of the square of the differences of the respective features
-            of the training sample and the predicted sample.
-            """
+        Returns
+        -------
+        The Euclidian distance.
+        """
 
-            if self.X.shape != X.shape:
-                raise ValueError(
-                    "The two samples must have the same number of features"
-                )
-
-            return sum(
-                (feature1 - feature2)**2
-                for feature1, feature2 in izip(self.X, X)
+        if self.X.shape != X.shape:
+            raise ValueError(
+                "The two samples must have the same number of features"
             )
+
+        # Remarks: as we only use this distance to sort the learning samples
+        #          by their distance to a sample to predict, we could get
+        #          rid of the 'sqrt()' call.
+
+        return sqrt(
+            sum(
+                (feature1 - feature2)**2
+                for feature1, feature2 in zip(self.X, X)
+            )
+        )
+
+class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(self, n_neighbors=1):
         """K-nearest classifier classifier
@@ -85,6 +92,7 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         self : object
             Returns self.
         """
+
         # Parameter validation
         if self.n_neighbors < 0:
             raise ValueError("n_neighbors muster greater than 0, got %s"
@@ -104,8 +112,11 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         # sorting the 'n_neighbors' nearest neighbors in the prediction
         # algorithms.
         self.train_set = [
-            TrainingSample(sample, target) for sample, target in izip(X, y)
+            TrainingSample(sample, target) for sample, target in zip(X, y)
         ]
+
+        # Collects all the different classes by lexicographic order.
+        self.classes_ = sorted(set(y))
 
         return self
 
@@ -123,12 +134,39 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             The predicted classes, or the predict values.
         """
 
+        #
+        # Selects the class returned by 'predict_proba()' with the highest
+        # probability.
+        #
+
+        # Indexes (in 'classes_') of the classes with the highest probability,
+        # for each sample.
+        class_ixs = np.argmax(self.predict_proba(X), axis=1)
+
+        return np.array(self.classes_[ix] for ix in class_ixs)
+
+    def predict_proba(self, X):
+        """Return probability estimates for the test data X.
+
+        Parameters
+        ----------
+        X : array-like of shape [n_samples, n_features]
+            Test samples.
+
+        Returns
+        -------
+        p : array of shape = [n_samples, n_classes]
+            The class probabilities of the input samples. Classes are ordered
+            by lexicographic order. The order of the classes corresponds to that
+            in the attribute classes_.
+        """
+
         # Input validation
         X = np.asarray(X, dtype=np.float)
         if X.ndim != 2:
             raise ValueError("X must be 2 dimensional")
 
-        y = np.empty(X.shape[0]) # Output
+        y = np.empty(X.shape[0], len(self.classes_)) # Output
 
         for i, sample in enumerate(X):
             #
@@ -136,6 +174,8 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             #
 
             def cmp_training_samples(training_sample1, training_sample2):
+                """Compares two training samples by their distance to 'sample'.
+                """
                 return cmp(
                     training_sample1.dist(sample), training_sample2.dist(sample)
                 ) 
@@ -145,37 +185,112 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             )[:self.n_neighbors]
 
             #
-            # Selects the majority class in the nearest samples.
+            # Counts the number of neighbors for each class.
             #
 
-            classes = {}
+            classes_count = dict((c, 0) for c in self.classes_)
             for nearest in nearests:
-                if nearest.y in classes:
-                    classes[nearest.y] += 1
-                else:
-                    classes[nearest.y] = 1
+                assert nearest.y in classes
+                classes[nearest.y] += 1
 
-            y[i] = max(classes.iteritems(), key=lambda (y, n): n)[0]
+            #
+            # Copies the class neighbor count into the 'y' output, in
+            # lexicographic order regarding their label.
+            #
+
+            # Sorts classes by the lexicographic order of their label.
+            sorted_classes_count = sorted(d.items(), key=lambda i: i[0])
+
+            # Removes the class labels and copies them in the output matrix.
+            y[i] = (v for k, v in sorted_classes_count)
 
         return y
 
-    def predict_proba(self, X):
-        """Return probability estimates for the test data X.
-
-        Parameters
-        ----------
-        X : array-like, shape (n_query, n_features)
-            Test samples.
-
-        Returns
-        -------
-        p : array of shape = [n_samples, n_classes]
-            The class probabilities of the input samples. Classes are ordered
-            by lexicographic order.
-        """
-        # TODO your code here.
-        pass
-
 if __name__ == "__main__":
     # (Question 2): K-nearest-neighbors
-    # TODO your code here
+
+    N_SAMPLES  = 2000
+    N_TRAINING = 150
+    RANDOM_STATE = 1
+
+    MAX_N_NEIGHBORS = 20
+
+    X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
+
+    # Splits the training and testings sets randomly.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=N_TRAINING, random_state=RANDOM_STATE
+    )
+
+    assert (len(X_train) == N_TRAINING)
+    assert (len(y_train) == N_TRAINING)
+    assert (len(X_test)  == N_SAMPLES - N_TRAINING)
+    assert (len(y_test)  == N_SAMPLES - N_TRAINING)
+
+    scores_test = []
+    scores_train = []
+    scores_ten_fold = []
+
+    for n_neighbors in range(1, MAX_N_NEIGHBORS + 1):
+        knc = skl.KNeighborsClassifier(n_neighbors=n_neighbors)
+
+        # Trains the classifier on a simple train/test split of the data.
+        knc.fit(X_train, y_train)
+
+        score_test = knc.score(X_test, y_test)
+        score_train = knc.score(X_train, y_train)
+
+        scores_test.append(score_test)
+        scores_train.append(score_train)
+
+        # Computes the score using a 10-fold cross-validation.
+        score_ten_fold = cross_val_score(knc, X, y, cv=10).mean()
+        scores_ten_fold.append(score_ten_fold)
+
+        print(
+            "Neighs.: {} Score (test): {} Score (train): {} Score (10-fold): {}"
+                .format(n_neighbors, score_test, score_train, score_ten_fold)
+        )
+
+        plot_boundary(
+            "knn_out/knn_{n_neighbors}".format(n_neighbors=n_neighbors), knc,
+            X_test, y_test
+        )
+
+    plt.figure()
+    plt.title("K-nearest neighbors error rate")
+    plt.xlabel("Number of neighbors")
+    plt.ylabel("Error")
+    plt.ylim(0, 1)
+    depth_range = range(1, len(scores_test) + 1)
+    plt.plot(
+        depth_range, [1 - s for s in scores_test], 'r', label="Testing set"
+    )
+    plt.plot(
+        depth_range, [1 - s for s in scores_train], 'g', label="Training set"
+    )
+    plt.plot(
+        depth_range, [1 - s for s in scores_ten_fold], 'b',
+        label="10-fold cross-validation"
+    )
+
+    def find_best_score(scores):
+        """
+        Given a list of scores, returns the best score, and the depth at which
+        it was achieved.
+        """
+        best_score = max(scores)
+        best_score_depth = scores.index(best_score) + 1
+        return best_score, best_score_depth
+
+    best_test_score, best_test_depth = find_best_score(scores_test)
+    plt.plot(best_test_depth, 1 - best_test_score, "ro")
+
+    best_ten_fold_score, best_ten_fold_depth = find_best_score(scores_ten_fold)
+    plt.plot(best_ten_fold_depth, 1 - best_ten_fold_score, "bo")
+
+    plt.legend()
+
+    plt.savefig("knn_out/Scores.pdf")
+    plt.close()
+
