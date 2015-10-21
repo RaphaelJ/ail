@@ -25,7 +25,7 @@ if __name__ == "__main__":
     N_TRAINING = 150
     RANDOM_STATE = 1
 
-    MAX_DEPTH = 17 # Doesn't train tree deeper than 'MAX_DEPTH'
+    MAX_DEPTH = 50 # Doesn't train tree deeper than 'MAX_DEPTH'
 
     X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
 
