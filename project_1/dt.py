@@ -45,6 +45,9 @@ if __name__ == "__main__":
 
     for depth in range(1, MAX_DEPTH + 1):
         dtc = DecisionTreeClassifier(max_depth=depth)
+        # Case with random state inside of the tree classifier
+        """dtc = DecisionTreeClassifier(max_depth=depth,
+                                     random_state = RANDOM_STATE)"""
 
         # Trains the classifier on a simple train/test split of the data.
         dtc.fit(X_train, y_train)
@@ -72,7 +75,7 @@ if __name__ == "__main__":
     plt.title("Decision tree error rate")
     plt.xlabel("Tree depth (complexity)")
     plt.ylabel("Error")
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.6)
     depth_range = range(1, len(scores_test) + 1)
     plt.plot(
         depth_range, [1 - s for s in scores_test], 'r', label="Testing set"
@@ -94,6 +97,7 @@ if __name__ == "__main__":
         best_score_depth = scores.index(best_score) + 1
         return best_score, best_score_depth
 
+    # Find best scores
     best_test_score, best_test_depth = find_best_score(scores_test)
     plt.plot(best_test_depth, 1 - best_test_score, "ro")
 

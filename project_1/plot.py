@@ -50,6 +50,7 @@ def plot_boundary(fname, fitted_estimator, X, y, mesh_step_size=0.1, title=""):
 
     # Put the result into a color plot
     plt.contourf(xx, yy, Z, cmap=cm, alpha=.8)
+    plt.colorbar()
 
     # Plot testing point
     plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cm_bright)
