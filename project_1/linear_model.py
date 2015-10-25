@@ -78,13 +78,15 @@ def to_polar(X, y):
                 continue
 
             angle_quadrant = quadrant(X_polar[ix, 0])
-
+            new_angle = X_polar[ix, 0]
+            
             if prec_angle_quadrant != None:
-                if prec_angle_quadrant == 2 and angle_quadrant == 3:
+                if prev_angle >= 0 and new_angle <= 0 and prev_angle - new_angle > np.pi:
                     n_turns += 1
-                elif prec_angle_quadrant == 3 and angle_quadrant == 2:
+                elif prev_angle <= 0 and new_angle >= 0 and new_angle - prev_angle > np.pi:
                     n_turns -= 1
 
+            prev_angle = X_polar[ix, 0]
             prec_angle_quadrant = angle_quadrant
 
             X_polar[ix, 0] += n_turns * 2 * np.pi
@@ -100,44 +102,46 @@ if __name__ == "__main__":
 
     N_SAMPLES = 2000
     N_TRAINING = 150
-    RANDOM_STATE = 1
+    RANDOM_STATE = 0
+    for RANDOM_STATE in range(0, 10):
 
-    X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
+        X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
 
-    # Comment this line to not convert the sample into polar coordinates before
-    # applying the linear model.
-    X = to_polar(X, y)
+        # Comment this line to not convert the sample into polar coordinates
+        # before applying the linear model.
+        X = to_polar(X, y)
 
-    # Splits the training and testings sets randomly.
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, train_size=N_TRAINING, random_state=RANDOM_STATE
-    )
+        # Splits the training and testings sets randomly.
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, train_size=N_TRAINING, random_state=RANDOM_STATE
+        )
 
-    assert (len(X_train) == N_TRAINING)
-    assert (len(y_train) == N_TRAINING)
-    assert (len(X_test)  == N_SAMPLES - N_TRAINING)
-    assert (len(y_test)  == N_SAMPLES - N_TRAINING)
+        assert (len(X_train) == N_TRAINING)
+        assert (len(y_train) == N_TRAINING)
+        assert (len(X_test)  == N_SAMPLES - N_TRAINING)
+        assert (len(y_test)  == N_SAMPLES - N_TRAINING)
 
-    rc = RidgeClassifier(alpha = 0)
+        rc = RidgeClassifier(alpha = 0)
 
-    # Trains the classifier on a simple train split of the data.
-    rc.fit(X_train, y_train)
-    y_predicted = rc.predict(X_test)
+        # Trains the classifier on a simple train split of the data.
+        rc.fit(X_train, y_train)
+        y_predicted = rc.predict(X_test)
 
-    plot_boundary(
-        "lin_out/test_classes", rc, X_test, y_test,
-        title = "Test sample classes (reference)"
-    )
+        plot_boundary(
+            "lin_out/test_classes_Rand{}".format(RANDOM_STATE), rc, X_test,
+             y_test, title = "Test sample classes (reference)"
+        )
 
-    plot_boundary(
-        "lin_out/predict_test", rc, X_test, y_predicted,
-        title = "Linear model classifier prediction on the test sample"
-    )
+        plot_boundary(
+            "lin_out/predict_test_Rand{}".format(RANDOM_STATE), rc, X_test,
+             y_predicted, title = 
+                        "Linear model classifier prediction on the test sample"
+        )
 
-    score_test = rc.score(X_test, y_test)
-    score_train = rc.score(X_train, y_train)
+        score_test = rc.score(X_test, y_test)
+        score_train = rc.score(X_train, y_train)
 
-    print(
-        "Linear model: Score (test): {} Score (train): {}"
-        .format(score_test, score_train)
-    )
+        print(
+            "Random_state = {} Linear model: Score (test): {} Score (train): {}"
+            .format(RANDOM_STATE, score_test, score_train)
+        )
