@@ -25,7 +25,7 @@ if __name__ == "__main__":
     N_TRAINING = 150
     RANDOM_STATE = 1
 
-    MAX_DEPTH = 50 # Doesn't train tree deeper than 'MAX_DEPTH'
+    MAX_DEPTH = 30 # Doesn't train tree deeper than 'MAX_DEPTH'
 
     X, y = make_data(N_SAMPLES, random_state=RANDOM_STATE)
 
@@ -44,10 +44,10 @@ if __name__ == "__main__":
     scores_ten_fold = []
 
     for depth in range(1, MAX_DEPTH + 1):
-        dtc = DecisionTreeClassifier(max_depth=depth)
+        """dtc = DecisionTreeClassifier(max_depth=depth)"""
         # Case with random state inside of the tree classifier
-        """dtc = DecisionTreeClassifier(max_depth=depth,
-                                     random_state = RANDOM_STATE)"""
+        dtc = DecisionTreeClassifier(max_depth=depth,
+                                     random_state = RANDOM_STATE)
 
         # Trains the classifier on a simple train/test split of the data.
         dtc.fit(X_train, y_train)
