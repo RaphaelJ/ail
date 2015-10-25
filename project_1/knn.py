@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Only py3 / so that 2 / 3 = 0.66..
@@ -7,6 +7,8 @@ from __future__ import division
 from __future__ import unicode_literals
 # Only py3 print
 from __future__ import print_function
+
+import math
 
 import numpy as np
 
@@ -56,7 +58,7 @@ class TrainingSample:
         #          by their distance to a sample to predict, we could get
         #          rid of the 'sqrt()' call.
 
-        return sqrt(
+        return math.sqrt(
             sum(
                 (feature1 - feature2)**2
                 for feature1, feature2 in zip(self.X, X)
@@ -64,9 +66,8 @@ class TrainingSample:
         )
 
 class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
-
     def __init__(self, n_neighbors=1):
-        """K-nearest classifier classifier
+        """K-nearest classifier classifier.
 
         Parameters
         ----------
@@ -143,7 +144,7 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         # for each sample.
         class_ixs = np.argmax(self.predict_proba(X), axis=1)
 
-        return np.array(self.classes_[ix] for ix in class_ixs)
+        return np.array([self.classes_[ix] for ix in class_ixs])
 
     def predict_proba(self, X):
         """Return probability estimates for the test data X.
@@ -166,22 +167,16 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         if X.ndim != 2:
             raise ValueError("X must be 2 dimensional")
 
-        y = np.empty(X.shape[0], len(self.classes_)) # Output
+        y = np.empty((X.shape[0], len(self.classes_))) # Output
 
         for i, sample in enumerate(X):
             #
-            # Finds the 'n_neighbors' nearest neighbors by sorting them.
+            # Finds the 'n_neighbors' nearest neighbors by sorting them by their
+            # distance to 'sample'.
             #
 
-            def cmp_training_samples(training_sample1, training_sample2):
-                """Compares two training samples by their distance to 'sample'.
-                """
-                return cmp(
-                    training_sample1.dist(sample), training_sample2.dist(sample)
-                ) 
-
             nearests = sorted(
-                self.train_set, cmp=cmp_training_samples
+                self.train_set, key=lambda ts: ts.dist(sample)
             )[:self.n_neighbors]
 
             #
@@ -190,8 +185,8 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
 
             classes_count = dict((c, 0) for c in self.classes_)
             for nearest in nearests:
-                assert nearest.y in classes
-                classes[nearest.y] += 1
+                assert nearest.y in classes_count
+                classes_count[nearest.y] += 1
 
             #
             # Copies the class neighbor count into the 'y' output, in
@@ -199,10 +194,12 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             #
 
             # Sorts classes by the lexicographic order of their label.
-            sorted_classes_count = sorted(d.items(), key=lambda i: i[0])
+            sorted_classes_count = sorted(
+                classes_count.items(), key=lambda i: i[0]
+            )
 
             # Removes the class labels and copies them in the output matrix.
-            y[i] = (v for k, v in sorted_classes_count)
+            y[i, :] = np.array([v for k, v in sorted_classes_count])
 
         return y
 
@@ -232,6 +229,11 @@ if __name__ == "__main__":
     scores_ten_fold = []
 
     for n_neighbors in range(1, MAX_N_NEIGHBORS + 1):
+        # Uncomment the following line to use our KNN classifier instead of the
+        # one provided by scikit-learn. Both give the same results, but the one
+        # provided by scikit-learn is significantly faster.
+
+        #knc = KNeighborsClassifier(n_neighbors=n_neighbors)
         knc = skl.KNeighborsClassifier(n_neighbors=n_neighbors)
 
         # Trains the classifier on a simple train/test split of the data.
