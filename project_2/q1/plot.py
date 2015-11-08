@@ -5,12 +5,13 @@ from scipy import integrate
 from scipy.stats import norm
 
 step = 0.001
-xs = np.arange(0, 2, step);
+xs = np.arange(0, 2, step)
 
 sigma = 0.1
 
 rs = [0.7, 0.5]
-colors = ['g', 'b']
+colors = ['b', 'g']
+labels = ["y = 0", "y = 1"]
 
 fig, ax1 = plt.subplots()
 
@@ -22,7 +23,7 @@ for i in range(0, 2):
     color = colors[i]
 
     ys = f(xs, r)
-    ax1.plot(xs, ys, color=color, linewidth=1)
+    ax1.plot(xs, ys, color=color, linewidth=1, label=labels[i])
 
     other_r = rs[(i + 1) % 2]
 
@@ -35,6 +36,10 @@ for i in range(0, 2):
 
     ax1.fill_between(xs, 0, background, alpha=0.2, color=color, linewidth=0)
 
+ax1.set_ylabel("Probability density")
+ax1.set_xlabel("Radius")
+ax1.legend()
+
 def error_f(x):
     return min(f(x, rs[0]), f(x, rs[1]))
 
@@ -46,6 +51,10 @@ for i, x in enumerate(xs):
 
 ax2 = ax1.twinx()
 ax2.plot(xs, error, color='r', linewidth=1)
+
+ax2.set_ylabel("Cumulative error")
+
+plt.legend()
 
 print("Integrale:", integrate.quad(error_f, -100, 100))
 
