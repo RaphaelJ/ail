@@ -47,7 +47,7 @@ error = np.empty(xs.size)
 cum_integral = 0
 for i, x in enumerate(xs):
     cum_integral += error_f(x) * step
-    error[i] = cum_integral
+    error[i] = cum_integral / 2
 
 ax2 = ax1.twinx()
 ax2.plot(xs, error, color='r', linewidth=1)

@@ -24,18 +24,21 @@ RANGE_BEGIN = -9
 RANGE_END = 9
 RANGE_SIZE = 1000
 
-N_SAMPLES_ESTIMATE = 10**5
+N_SAMPLES_ESTIMATE = 10**4
 
-def target_func(xs, sigma=1):
+def target_func(xs, sigma=1.0, noise=0.0):
     """
     Given a matrix of samples and their single attribute 'x', return a matrix of
-    values computed as '(sin(x) + cos(x)) * x² + e' where 'e ~ N(0, 1)' is a
+    values computed as '(sin(x) + cos(x)) * x² + e' where 'e ~ N(0, sigma)' is a
     noise variable.
 
     Parameters
     ----------
     xs : array-like, shape = [n_samples, 1]
-         The samples
+         The input samples
+    sigma : the standard deviation of the noise 'e'.
+    noise : the probablity of the function to generate an irrelevant noisy
+            output for a given input sample.
 
     Returns
     -------
@@ -43,8 +46,23 @@ def target_func(xs, sigma=1):
          The target values.
     """
 
-    es = np.random.normal(0, 1, xs.shape)
-    ys = (np.sin(xs) + np.cos(xs)) * xs * xs + es
+    assert 0.0 <= noise <= 1.0
+
+    # Computes the output of the function for all 'xs'.
+    es = np.random.normal(0, sigma, xs.shape)
+    regular_ys = (np.sin(xs) + np.cos(xs)) * xs * xs + es
+
+    # Computes noisy values for all 'xs'.
+    noisy_ys = np.random.uniform(-9, 9, xs.shape)
+
+    # Creates a random vector of 0/1 values. Each value indicates for a sample
+    # in 'xs' if an irrelevant/noisy output must be returned (1) or not (0).
+    is_noise = np.random.choice([0, 1], len(xs), p=[1.0 - noise, noise])
+
+    # Selects either the noisy value, or the real output, depending of
+    # 'is_noise'
+    ys = regular_ys * np.logical_not(is_noise) + noisy_ys * is_noise
+
     return ys
 
 def estimate_error(f, regrs, x):
@@ -103,11 +121,11 @@ def estimate_errors(regr_t, f, n_ls=N_LS, ls_size=LS_SIZE):
     'x' values determined by 'RANGE_BEGIN', 'RANGE_END' and 'RANGE_SIZE'.
     """
 
-    xs = np.random.uniform(RANGE_BEGIN, RANGE_END, (ls_size, 1))
+    xs_train = np.random.uniform(RANGE_BEGIN, RANGE_END, (ls_size, 1))
 
     def train_regression():
         regr = regr_t()
-        regr.fit(xs, f(xs))
+        regr.fit(xs_train, f(xs_train))
         return regr
 
     regrs = [train_regression() for i in range(0, n_ls)]
@@ -162,15 +180,22 @@ def q2d(regr_t):
       are assumed to be independently drawn from U(-9, 9).
     """
 
-    def estimate_errors_mean(ls_size):
-        _, errs = estimate_errors(regr_t, target_func, ls_size=ls_size)
+    def estimate_errors_mean(ls_size=LS_SIZE, sigma=1, noise=0.0):
+        _, errs = estimate_errors(
+            regr_t, lambda x: target_func(x, sigma=sigma, noise=noise),
+            ls_size=ls_size
+        )
         return errs.mean(axis=1)
 
     # Tries several sizes of the learning set.
-    ls_sizes = np.logspace(1, 4, 10)
-    errs = np.empty((len(ls_sizes), 4))
-    for i, ls_size in enumerate(ls_sizes):
-        errs[i] = estimate_errors_mean(ls_size)
+    ls_sizes = np.logspace(1, 2.5, 10)
+    errs = np.array(
+        [estimate_errors_mean(ls_size=ls_size) for ls_size in ls_sizes]
+    )
+
+    # Tries to change the standard deviation of the noise 'e'.
+    sigmas = np.logspace(0, 2, 10)
+    errs = np.array([estimate_errors_mean(sigma=sigma) for sigma in sigmas])
 
     plt.plot(ls_sizes, errs[:,0], 'r', label='Residual error')
     plt.plot(ls_sizes, errs[:,1], 'g', label='Bias²')
@@ -184,9 +209,10 @@ if __name__ == "__main__":
     #q2b(LinearRegression)
     #q2b(DecisionTreeRegressor)
 
-    q2c(LinearRegression)
+    #q2c(LinearRegression)
     #q2c(DecisionTreeRegressor)
-    q2c(KNeighborsRegressor)
+    #q2c(KNeighborsRegressor)
 
     #q2d(LinearRegression)
     #q2d(KNeighborsRegressor)
+    q2d(DecisionTreeRegressor)
