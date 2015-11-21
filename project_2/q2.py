@@ -15,6 +15,7 @@ from sklearn.cross_validation import cross_val_score, train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
 
 N_LS = 100
 LS_SIZE = 10**3
@@ -99,7 +100,7 @@ def estimate_errors(regr_t, f, n_ls=N_LS, ls_size=LS_SIZE):
     """
     Trains 'n_ls' regressions on 'n_ls' randomly generated training set of size
     'ls_size' and estimate their errors with 'estimate_error()' on a range of
-    'x' values determinated by 'RANGE_BEGIN', 'RANGE_END' and 'RANGE_SIZE'.
+    'x' values determined by 'RANGE_BEGIN', 'RANGE_END' and 'RANGE_SIZE'.
     """
 
     xs = np.random.uniform(RANGE_BEGIN, RANGE_END, (ls_size, 1))
@@ -165,9 +166,11 @@ def q2d(regr_t):
         _, errs = estimate_errors(regr_t, target_func, ls_size=ls_size)
         return errs.mean(axis=1)
 
-    # Varies the size of the learning set.
-    ls_sizes = np.logspace(1, 2, 2)
-    errs = np.vectorize(estimate_errors_mean)(ls_sizes)
+    # Tries several sizes of the learning set.
+    ls_sizes = np.logspace(1, 4, 10)
+    errs = np.empty((len(ls_sizes), 4))
+    for i, ls_size in enumerate(ls_sizes):
+        errs[i] = estimate_errors_mean(ls_size)
 
     plt.plot(ls_sizes, errs[:,0], 'r', label='Residual error')
     plt.plot(ls_sizes, errs[:,1], 'g', label='Bias²')
@@ -181,7 +184,9 @@ if __name__ == "__main__":
     #q2b(LinearRegression)
     #q2b(DecisionTreeRegressor)
 
-    #q2c(LinearRegression)
+    q2c(LinearRegression)
     #q2c(DecisionTreeRegressor)
+    q2c(KNeighborsRegressor)
 
-    q2d(LinearRegression)
+    #q2d(LinearRegression)
+    #q2d(KNeighborsRegressor)
