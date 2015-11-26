@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Authors: Maxime Javaux    <maximejavaux@hotmail.com>
 #          Raphael Javaux   <raphaeljavaux@gmail.com>

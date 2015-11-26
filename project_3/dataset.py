@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 # Authors: Maxime Javaux    <maximejavaux@hotmail.com>
 #          Raphael Javaux   <raphaeljavaux@gmail.com>
 
@@ -136,11 +137,11 @@ def load_dataset(filepath):
             print(len(sample.trip))
     """
 
-    with open(filepath, newline='') as f:
+    with open(filepath) as f:
         reader = csv.reader(f)
 
         # Skips the header
-        reader.__next__()
+        next(reader)
 
         for line in reader:
             yield Sample(line)

@@ -1,4 +1,8 @@
 #! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Authors: Maxime Javaux    <maximejavaux@hotmail.com>
+#          Raphael Javaux   <raphaeljavaux@gmail.com>
 
 """Script that strip a training dataset to the given number of samples."""
 
