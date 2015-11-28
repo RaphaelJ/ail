@@ -2,7 +2,9 @@
 # Authors: Maxime Javaux    <maximejavaux@hotmail.com>
 #          Raphael Javaux   <raphaeljavaux@gmail.com>
 
-"""Provide a function to read a CSV dataset from a file."""
+"""
+Provides a function to read and interpret samples fomr a CSV file dataset.
+"""
 
 import ast, collections, csv, datetime
 
@@ -104,26 +106,69 @@ class Sample:
         else:
             return self.trip[-1]
 
-    @property
-    def as_numpy_arr(self):
+    #
+    # Export the sample as a Numpy vector
+    #
+
+    # Contains all the feature names that can be used with 'arr()'.
+    features = [
+        'call_type', 'origin_call', 'origin_stand', 'taxi_id',
+        'start_time.year', 'start_time.month', 'start_time.day',
+        'start_time.weekday', 'start_time.hour', 'start_time.minute',
+        'day_type', 'begin.lat', 'begin.lon', 'end.lat', 'end.lon',
+    ]
+
+    # Used to converts the feature name into 
+    _feature_getters = {
+        'call_type': lambda self: self.call_type,
+        'origin_call': lambda self: self.origin_call,
+        'origin_stand': lambda self: self.origin_stand,
+        'start_time.year': lambda self: self.start_time.year,
+        'start_time.month': lambda self: self.start_time.month,
+        'start_time.day': lambda self: self.start_time.day,
+        'start_time.weekday': lambda self: self.start_time.weekday(),
+        'start_time.hour': lambda self: self.start_time.month,
+        'start_time.minute': lambda self: self.start_time.day,
+        'day_type': lambda self: self.day_type,
+        'begin.lat': lambda self: self.begin.lat,
+        'begin.lon': lambda self: self.begin.lon,
+        'end.lat': lambda self: self.end.lat,
+        'end.lon': lambda self: self.end.lon,
+    }
+
+    def vec(self, features=features):
         """
-        Returns the sample as a Numpy vector of 15 elements.
+        Returns the sample as a Numpy vector of 'len(features)' elements.
+
+        Features are returned in the same order as in the provided 'features'
+        parameter.
+
+        Example:
+            >>> sample.array(['begin.lat', 'begin.lon', 'end.lat', 'end.lon'])
+            array([ 41.148864,  -8.585649,  41.237253,  -8.669925])
         """
 
         return np.array([
-            self.call_type, self.origin_call, self.origin_stand, self.taxi_id,
-            self.start_time.year, self.start_time.month, self.start_time.day,
-            self.start_time.weekday(), self.start_time.hour,
-            self.start_time.minute, self.day_type, self.begin.lat,
-            self.begin.lon, self.end.lat, self.end.lon,
+            Sample._feature_getters[feature_name](self)
+            for feature_name in features
         ])
 
+    #
+    # Export the sample's trip as a Numpy vector.
+    #
+
     @property
-    def trip_as_numpy_arr(self):
+    def trip_vec(self):
         """
-        Returns a Numpy array of shape [len(self.trip), 2] containing a two
+        Gives a Numpy array of shape [len(self.trip), 2] containing a two
         elements vector [latitude, longitude] for each GPS coordinate of the
         path.
+
+        Example:
+            >>> sample.trip_vec
+            array([[ 41.148864,  -8.585649],
+                   [ 41.148963,  -8.586549],
+                   [ 41.149368,  -8.587998])
         """
 
         return np.array([ [coord.lat, coord.lon] for coord in self.trip ])

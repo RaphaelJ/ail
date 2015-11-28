@@ -43,27 +43,18 @@ if __name__ == '__main__':
         dataset, test_size=0.3, random_state=RANDOM_STATE
     )
 
+    features_X = [
+        'start_time.month', 'start_time.weekday', 'start_time.hour',
+        'begin.lat', 'begin.lon'
+    ]
+
+    features_y = [ 'end.lat', 'end.lon' ]
+
     #for depth in range(1, 30):
     for neighs in range(14, 15):
 
-        train_X = np.array([
-            np.concatenate((
-            #[sample.as_numpy_arr[3]], [sample.as_numpy_arr[5]],
-            #[sample.as_numpy_arr[6]], [sample.as_numpy_arr[7]],
-            #[sample.as_numpy_arr[8]],
-            #[sample.as_numpy_arr[7]], [sample.as_numpy_arr[10]],
-            sample.trip_as_numpy_arr[0],
-            sample.trip_as_numpy_arr[
-                np.random.randint(0, len(sample.trip_as_numpy_arr))
-              ]
-            ))
-            for sample in train
-        ])
-
-        train_y = np.array([
-            sample.trip_as_numpy_arr[-1]
-            for sample in train
-        ])
+        train_X = np.array([ sample.vec(features_X) for sample in train ])
+        train_y = np.array([ sample.vec(features_y) for sample in train ])
 
         def weighting_func(dists):
             return np.ones(dists.shape)
@@ -80,27 +71,11 @@ if __name__ == '__main__':
 
             # Randomly removes positions in the test case paths.
 
-            test_X = np.array([
-                np.concatenate((
-                #[sample.as_numpy_arr[3]], [sample.as_numpy_arr[5]],
-                #[sample.as_numpy_arr[6]], [sample.as_numpy_arr[7]],
-                #[sample.as_numpy_arr[8]], 
-                #[sample.as_numpy_arr[7]], [sample.as_numpy_arr[10]],
-                sample.trip_as_numpy_arr[0],
-                sample.trip_as_numpy_arr[
-                    np.random.randint(0, len(sample.trip_as_numpy_arr))
-                  ]
-                ))
-                for sample in test
-            ])
+            test_X = np.array([ sample.vec(features_X) for sample in test ])
+            train_y = np.array([ sample.vec(features_y) for sample in test ])
 
-            train_y = np.array([
-                sample.trip_as_numpy_arr[-1]
-                for sample in test
-            ])
-            
             predicted = regr.predict(test_X)
-            
+
             score = np.mean( np.abs( train_y - predicted ) ) 
             #print('depth: {} Score: {}'.format( depth, score ) )
             print('neighs: {} Score: {}'.format( neighs, score ) )
@@ -110,9 +85,8 @@ if __name__ == '__main__':
             print('"TRIP_ID","LATITUDE","LONGITUDE"')
 
             for sample in load_dataset(test_path):
-                trip = sample.trip_as_numpy_arr
-                predicted = regr.predict(np.concatenate([trip[0], trip[-1]]))[0]
+                predicted = regr.predict(sample.vec(features_X))[0]
 
                 print('"{}",{},{}'.format(
-                    sample.trip_id, predicted[0], predicted[1])
+                    sample.trip_id, predicted[1], predicted[0])
                 )
