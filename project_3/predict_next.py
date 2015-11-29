@@ -12,10 +12,10 @@ at T. Predicts the given testing dataset and writes the output on 'stdout'.
 import argparse, csv
 
 import numpy as np
-from sklearn.cross_validation import train_test_split
 
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.tree import DecisionTreeRegressor
 
 from dataset import load_dataset
 
@@ -23,7 +23,13 @@ DT_MAX_DEPTH = 15
 KNN_NEIGHBORS = 5
 RANDOM_STATE = 1
 
+N_JOBS = -1 # Uses all the availaible cores.
+
 if __name__ == '__main__':
+    #
+    # Loads the dataset from the given input file.
+    #
+
     parser = argparse.ArgumentParser(description=(__doc__))
 
     parser.add_argument('train_dataset', type=str)
@@ -45,10 +51,10 @@ if __name__ == '__main__':
 
     features_X = [
         'start_time.month', 'start_time.weekday', 'start_time.hour',
-        'begin.lat', 'begin.lon'
+        'begin.lat', 'begin.lon',
     ]
 
-    features_y = [ 'end.lat', 'end.lon' ]
+    features_y = ['end.lat', 'end.lon']
 
     #for depth in range(1, 30):
     for neighs in range(14, 15):
