@@ -10,7 +10,7 @@ K-means algorithm. Prints the computed clusters coordinates on 'stdout', one
 line per cluster with it latitude and longitude.
 """
 
-import argparse
+import argparse, csv
 
 from sys import stderr
 
@@ -21,7 +21,18 @@ from sklearn.cluster import KMeans
 from dataset import load_dataset
 
 def load_clusters(filepath):
-    pass
+    """Loads the K-Mean clusters from a file. Returns the K-Mean instance."""
+
+    with open(filepath) as f:
+        clusters = np.array([
+            [float(line[0]), float(line[1])]
+            for line in csv.reader(f)
+        ])
+
+    km = KMeans(clusters.shape[0])
+    km.cluster_centers_ = clusters
+
+    return km
 
 if __name__ == '__main__':
     #
