@@ -21,7 +21,17 @@ from sklearn.cluster import KMeans
 from dataset import load_dataset
 
 def load_clusters(filepath):
-    """Loads the K-Mean clusters from a file. Returns the K-Mean instance."""
+    """
+    Loads the K-Mean clusters from a file.
+
+    The returned K-Mean instance classify returns a cluster ID for each pair of
+    '[latitude, longitude]'.
+
+    Example:
+        >>> km = load_clusters(cluster_file)
+        >>> km.predict([ 41.16659446,  -8.62651986])
+        array([931], dtype=int32)
+    """
 
     with open(filepath) as f:
         clusters = np.array([

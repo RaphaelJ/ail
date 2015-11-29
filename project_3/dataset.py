@@ -115,7 +115,7 @@ class Sample:
         'call_type', 'origin_call', 'origin_stand', 'taxi_id',
         'start_time.year', 'start_time.month', 'start_time.day',
         'start_time.weekday', 'start_time.hour', 'start_time.minute',
-        'day_type', 'begin.lat', 'begin.lon', 'end.lat', 'end.lon',
+        'day_type',
     ]
 
     # Used to converts the feature name into 
@@ -130,28 +130,37 @@ class Sample:
         'start_time.hour': lambda self: self.start_time.month,
         'start_time.minute': lambda self: self.start_time.day,
         'day_type': lambda self: self.day_type,
-        'begin.lat': lambda self: self.begin.lat,
-        'begin.lon': lambda self: self.begin.lon,
-        'end.lat': lambda self: self.end.lat,
-        'end.lon': lambda self: self.end.lon,
     }
 
-    def vec(self, features=features):
+    def vec(self, features=features, trip_coords=[0, -1]):
         """
-        Returns the sample as a Numpy vector of 'len(features)' elements.
+        Returns the sample as a Numpy vector of
+        'len(features) + 2 * len(trip_features)' elements.
+
+        'features' specifies the names of the features that must be in the
+        vector, while 'trip_coords' specifies the pair of coordinates that must
+        be added to the vector.
 
         Features are returned in the same order as in the provided 'features'
-        parameter.
+        parameter, and are then followed by the coordinates (latitude and
+        longitude) of the trip as specified in 'trip_coords'.
 
         Example:
-            >>> sample.array(['begin.lat', 'begin.lon', 'end.lat', 'end.lon'])
-            array([ 41.148864,  -8.585649,  41.237253,  -8.669925])
+            >>> sample.vec(['start_time.day', 'start_time.year'], [0, -1])
+            array([    3.      ,  2013.      ,    41.148864,    -8.585649,
+                      41.237253,    -8.669925])
         """
 
-        return np.array([
-            Sample._feature_getters[feature_name](self)
-            for feature_name in features
-        ])
+        assert all(trip_coord < len(self.trip) for trip_coord in trip_coords)
+
+        return np.concatenate([[
+                Sample._feature_getters[feature_name](self)
+                for feature_name in features
+            ]] + [
+                [self.trip[trip_coord].lat, self.trip[trip_coord].lon]
+                for trip_coord in trip_coords
+            ]
+        )
 
     #
     # Export the sample's trip as a Numpy vector.
